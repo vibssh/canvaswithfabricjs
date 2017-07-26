@@ -1,0 +1,161 @@
+/* apply a natural box layout model to all elements, but allowing components to change */
+html {
+  box-sizing: border-box;
+  overflow: hidden;
+  overflow-y: scroll;
+}
+*, *:before, *:after {
+  box-sizing: inherit;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+body {
+background: url('/images/icons/check.png');
+background-repeat: repeat;
+}
+
+.upper-canvas.zoomIn {
+  cursor: url('/images/icons/zoomIcon.png') 0 0, auto !important;
+}
+
+.upper-canvas.zoomOut {
+  cursor: url('/images/icons/zoomOutIcon.png') 0 0, auto !important;
+}
+
+.upper-canvas.pan {
+  cursor: url('/images/icons/panIcon.png') 0 0, auto !important;
+}
+
+.upper-canvas.text {
+  cursor: url('/images/icons/textIcon.png') 0 0, auto !important;
+}
+
+
+main {
+  padding: 0 100px 0 76px;
+}
+
+.toolbar {
+  display: block;
+  max-width: 100px;
+  position: fixed;
+  z-index: 999;
+  top: 25%;
+  left: 20px;
+  background: #fefefe;
+  min-height: 200px;
+  border: 1px solid #000;
+  padding: 1em;
+}
+
+
+input[type='radio']{
+  display: inline-block;
+  vertical-align: middle;
+  position: absolute;
+  left: -9999px;
+}
+
+input[type='radio']:checked + label[for='select']{
+  background-position: 0 -23px;
+}
+
+input[type='radio']:checked + label[for='eraser']{
+  background-position: 0 -18px;
+}
+
+input[type='radio']:checked + label[for='pencil']{
+  background-position: 0 -22px;
+}
+
+input[type='radio']:checked + label[for='zoomIn']{
+  background-position: 0 -22px;
+}
+
+input[type='radio']:checked + label[for='zoomOut']{
+  background-position: 0 -22px;
+}
+
+input[type='radio']:checked + label[for='pan']{
+  background-position: 0 -22px;
+}
+
+input[type='radio']:checked + label[for='text']{
+  background-position: 0 -27px;
+}
+
+
+label {
+  display: block;
+  margin: 0 auto;
+  text-indent: -9999px;
+  width: 50px;
+  height: 50px;
+  margin-bottom: 20px;
+}
+
+label[for='select']{
+  background: url('/images/icons/selectIcon-sprite.png') no-repeat;
+  width: 22px;
+  height: 23px;
+  background-position: 0 0;
+}
+
+label[for='zoomIn']{
+  background: url('/images/icons/zoomIcon-sprite.png') no-repeat;
+  width: 22px;
+  height: 22px;
+  background-position: 0 0;
+}
+
+
+label[for='zoomOut']{
+  background: url('/images/icons/zoomOutIcon-sprite.png') no-repeat;
+  width: 22px;
+  height: 22px;
+  background-position: 0 0;
+}
+
+label[for='pan']{
+  background: url('/images/icons/panIcon-sprite.png') no-repeat;
+  width: 22px;
+  height: 22px;
+  background-position: 0 0;
+}
+
+label[for='text']{
+  background: url('/images/icons/textIcon-sprite.png') no-repeat;
+  width: 22px;
+  height: 27px;
+  background-position: 0 0;
+}
+
+label[for='eraser']{
+  background: url('/images/icons/eraserIcon-sprite.png') no-repeat;
+  width: 22px;
+  height: 17px;
+  background-position: 0 0;
+}
+
+label[for='pencil']{
+  background: url('/images/icons/pencilIcon-sprite.png') no-repeat;
+  width: 22px;
+  height: 22px;
+  background-position: 0 0;
+}
+
+canvas.eraser {
+  cursor: url("/images/icons/eraser.png"), auto !important;
+}
+
+canvas.pencil {
+  cursor: url("/images/icons/pencil.png"), auto !important;
+}
+
+canvas.select {
+  cursor: url("/images/icons/selectIconmouse.png"), auto !important;
+}
+
+
