@@ -1,0 +1,66 @@
+<html>
+
+<head></head>
+
+<body>
+  <script>
+    (function() {
+      var buzz,
+        fizz,
+        fizzbuzz;
+
+      function getFizzBuzz(num) {
+        buzz = ((num % 5 === 0) ? 'buzz' : false);
+        fizz = ((num % 3 === 0) ? 'fizz' : false);
+        fizzbuzz = ((num % 15 === 0) ? 'fizzbuzz' : false);
+
+        //console.info(buzz);
+
+        switch(true) {
+          case 'buzz':
+             console.info('i am buzzing');
+            break;
+
+          case 'fizzbuzz':
+            console.info('i am fizzbuzzing');
+            break;
+
+          case 'fizz':
+            console.info('i am fizzing');
+            break;
+          default:
+            console.info('i am not buzzing');
+        }
+//        var conditions = {
+//            fizz: function() {
+//               console.info('fizz');
+//            },
+//
+//            buzz: function() {
+//               console.info('buzz');
+//            },
+//
+//            fizzbuzz: function() {
+//              console.info('fizzbuzz');
+//            },
+//
+//            'default': function() {
+//              //console.info('hello');
+//            }
+//
+//          };
+//          return (conditions[num] || conditions['default'])();
+//
+//
+
+      };
+
+      return getFizzBuzz(15);
+    }());
+
+
+
+  </script>
+</body>
+
+</html>
