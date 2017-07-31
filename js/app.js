@@ -16,19 +16,15 @@
     backgroundColor: 'rgba(191, 34, 151, 0.31)',
     selection: false,
     width: window.innerWidth - 110,
-    height: window.innerHeight - 135
+    height: window.innerHeight - 135,
+    preserveObjectStacking: true
   });
-
 
 
   /* Settings Background image of the canvas*/
   //  whiteBoard.setBackgroundColor({
   //    source: '/images/icons/check.png'
   //  }, whiteBoard.renderAll.bind(whiteBoard));
-
-
-
-
 
 
   whiteBoard.renderAll.bind(whiteBoard);
@@ -46,7 +42,6 @@
 
   var panning = false;
   var panChecked = false;
-
 
   /* Setting Dimensions of the Canvas when object is moved */
   whiteBoard.on('object:moving', function (e) {
@@ -217,7 +212,7 @@
     $('canvas').unbind('click');
     $('body').unbind('click');
     $('label[for="uploader"]').removeClass('active');
-
+//     textObject.exitEditing();
 
     /* ERASER */
     if ($('#eraser').is(':checked')) {
@@ -228,7 +223,6 @@
       });
     } else {
       $('.upper-canvas').removeClass('eraser');
-
     }
 
     /* PENCIL */
@@ -304,6 +298,20 @@
       $('.upper-canvas').removeClass('text');
     }
 
+     /* Send To Back Object */
+    if ($('#sendBack').is(':checked')) {
+        sendSelectedObjectBack();
+       $(this).removeAttr('checked');
+    }
+
+    /* Bring To Front Object */
+    if ($('#bringFront').is(':checked')) {
+        sendSelectObjectToFront();
+       $(this).removeAttr('checked');
+    }
+
+
+
   });
 
 
@@ -322,7 +330,6 @@
       img.classList.remove('img_dragging');
     });
     this.classList.add('img_dragging');
-
   }
 
   //Dragging End
@@ -363,7 +370,6 @@
     droppedGround.style.backgroundColor = '';
 
     if (img) {
-      console.info('img is there', img);
       var newImage = new fabric.Image(img, {
         width: img.width,
         height: img.height,
@@ -379,10 +385,10 @@
     /* Dragging Image from computer on the canvas */
     var draggedFiles = event.dataTransfer.files[0];
     var reader = new FileReader();
-     reader.onload = function(event){
+    reader.onload = function (event) {
       var imgObj = new Image();
-       imgObj.src = event.target.result;
-       imgObj.onload = function () {
+      imgObj.src = event.target.result;
+      imgObj.onload = function () {
         var image = new fabric.Image(imgObj);
         image.set({
           left: 250,
@@ -443,19 +449,19 @@
     reader.readAsDataURL(e.target.files[0]);
   }
 
+  // Stacking the objects
+  var selectedObject;
 
-  //Realtime Stuff
-  if (TogetherJS.running) {
-    TogetherJS.send({
-      type: 'draw',
-      start: someRandomFunction
-    });
-  }
-
-
-  TogetherJS.hub.on('draw', function (msg) {
-    draw(msg.start);
+  whiteBoard.on('object:selected', function (event) {
+    selectedObject = event.target;
   });
 
+  var sendSelectedObjectBack = function () {
+    whiteBoard.sendToBack(selectedObject);
+  };
+
+  var sendSelectObjectToFront = function () {
+    whiteBoard.bringToFront(selectedObject);
+  }
 
 }());

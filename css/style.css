@@ -90,6 +90,15 @@ input[type='radio']:checked + label[for='uploader']{
   background-position: 0 -22px;
 }
 
+input[type='radio']:checked + label[for='bringFront']{
+  background-position: 0 -22px;
+}
+
+input[type='radio']:checked + label[for='sendBack']{
+  background-position: 0 22px;
+}
+
+
 label {
   display: block;
   margin: 0 auto;
@@ -103,6 +112,20 @@ label[for='select']{
   background: url('/images/icons/selectIcon-sprite.png') no-repeat;
   width: 22px;
   height: 23px;
+  background-position: 0 0;
+}
+
+label[for='sendBack']{
+  background: url('/images/icons/sendtoback.png') no-repeat;
+  width: 22px;
+  height: 22px;
+  background-position: 0 0;
+}
+
+label[for='bringFront']{
+  background: url('/images/icons/bringtofront-sprite.png') no-repeat;
+  width: 22px;
+  height: 22px;
   background-position: 0 0;
 }
 
