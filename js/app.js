@@ -444,6 +444,35 @@
 
 
   /* Realtime Collaboration */
+// Listens for draw messages, sends info about the drawn lines:
+TogetherJS.hub.on('draw', function (msg) {
+  if (!msg.sameUrl) {
+      return;
+  }
+  draw(msg.start, msg.end, msg.color, msg.size, msg.compositeOperation, true);
+});
 
+
+// Clears the canvas whenever someone presses the clear-button
+TogetherJS.hub.on('clear', function (msg) {
+  if (!msg.sameUrl) {
+    return;
+  }
+  clear(false);
+});
+
+// Hello is sent from every newly connected user, this way they will receive what has already been drawn:
+TogetherJS.hub.on('togetherjs.hello', function () {
+  TogetherJS.send({
+    type: 'init',
+    lines: lines
+  });
+});
+
+// Draw initially received drawings:
+TogetherJS.hub.on('init', function (msg) {
+  reDraw(msg.lines);
+  lines = msg.lines;
+});
 
 }());
