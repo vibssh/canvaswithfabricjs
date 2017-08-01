@@ -2,7 +2,6 @@
 <html>
 
 <head>
-
   <meta charset="utf-8">
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, maximum-scale=1">
@@ -13,12 +12,10 @@
 </head>
 
 <body>
-  <!--Bootstrap grid-->
+  <!--Main Section -->
   <main>
-
-
+    <!-- Toolkit -->
     <div class="toolbar">
-      <!-- toolkit -->
       <form id="toolkit">
         <input type="radio" name="toolkit" id="eraser">
         <label for="eraser">Eraser</label>
@@ -47,32 +44,28 @@
         <input type="radio" name="toolkit" id="bringFront">
         <label for="bringFront">Bring To Front</label>
 
-         <input type="radio" name="toolkit" id="sendBack">
+        <input type="radio" name="toolkit" id="sendBack">
         <label for="sendBack">Bring To Front</label>
-
       </form>
     </div>
-
 
     <!--Creating a Canvas-->
     <div id="canvasWrapper">
       <canvas id="whiteboard">
-              Canvas not supported in your browser!
-            </canvas>
+        Canvas not supported in your browser!
+      </canvas>
     </div>
+
+    <!-- Image Container to drag to the Canvas -->
     <div class="content-container">
       <img draggable="true" src="http://i.imgur.com/8rmMZI3.jpg" width="100" height="100" />
       <img draggable="true" src="http://i.imgur.com/q9aLMza.png" width="100" height="100" />
       <img draggable="true" src="http://i.imgur.com/wMU4SFn.jpg" width="100" height="100" />
-      <button class='button'>Send</button>
     </div>
+
   </main>
 
-
-
-
-
-
+  <!-- JS Script Reference Goes here  -->
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
   <script src="https://togetherjs.com/togetherjs-min.js"></script>
