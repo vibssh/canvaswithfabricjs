@@ -1,10 +1,7 @@
 /*
   TODO LIST :
     1. DESELECT PENCIL STATE on click outside canvas
-
-
-
-
+    2. This is a JS Dump. TODO structure the code
 */
 
 
@@ -19,7 +16,6 @@
     height: window.innerHeight - 135,
     preserveObjectStacking: true
   });
-
 
   /* Settings Background image of the canvas*/
   //  whiteBoard.setBackgroundColor({
@@ -130,9 +126,6 @@
       whiteBoard.setHeight(objBottom);
     };
 
-    console.info('obj right position ', obj.right);
-    console.info('window width ', window.innerWidth);
-
     //This to prevent the obj from going outside left area and outside top area
     if (obj !== undefined) {
       if (obj.left <= 100) {
@@ -143,9 +136,6 @@
       }
     };
   };
-
-
-  /* SAMPLE SHAPES */
 
   /* Creating Instance of Rectangle */
   var rect = new fabric.Rect({
@@ -179,7 +169,6 @@
   /* Adding To whiteBoard to get it rendered*/
   whiteBoard.add(rect, circle);
 
-
   /* Adding Text Area and Text Box */
   var textOption = {
     fontFamily: 'Helvetica',
@@ -203,7 +192,6 @@
 
 
   };
-
 
   /* getObjects method to see what is rendered */
   $('input[type="radio"]').on('change', function (event) {
@@ -309,11 +297,7 @@
         sendSelectObjectToFront();
        $(this).removeAttr('checked');
     }
-
-
-
   });
-
 
   //Delete Selected Object by pressing delete key
   var deleteSelectedObj = function () {
@@ -415,7 +399,7 @@
   canvasContainer.addEventListener('dragleave', handleDragLeave, false);
   canvasContainer.addEventListener('drop', handleDrop, false);
 
-
+  // File Uploader
   $('#uploader').on('click', function () {
     $(this).prop('type', 'file');
     $('input[type="file"]').hide();
@@ -427,41 +411,39 @@
     var reader = new FileReader();
     console.info(e);
     reader.onload = function (event) {
-      console.log('fdsf');
       var imgObj = new Image();
       imgObj.src = event.target.result;
       imgObj.onload = function () {
-        // start fabricJS stuff
 
+        // start fabricJS stuff
         var image = new fabric.Image(imgObj);
         image.set({
           left: 250,
           top: 250,
           cornersize: 10
         });
-        //image.scale(getRandomNum(0.1, 0.25)).setCoords();
-        whiteBoard.add(image);
 
-        // end fabricJS stuff
+        whiteBoard.add(image);
       }
 
     }
     reader.readAsDataURL(e.target.files[0]);
   }
 
-  // Stacking the objects
+  /* Stacking the objects */
   var selectedObject;
-
   whiteBoard.on('object:selected', function (event) {
     selectedObject = event.target;
   });
-
   var sendSelectedObjectBack = function () {
     whiteBoard.sendToBack(selectedObject);
   };
-
   var sendSelectObjectToFront = function () {
     whiteBoard.bringToFront(selectedObject);
   }
+
+
+  /* Realtime Collaboration */
+
 
 }());
