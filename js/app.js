@@ -4,11 +4,245 @@
     2. This is a JS Dump. TODO structure the code
 */
 
+var whiteBoard = new fabric.Canvas('whiteboard', {
+    backgroundColor: 'rgba(191, 34, 151, 0.31)',
+    selection: false,
+    width: window.innerWidth - 110,
+    height: window.innerHeight - 135,
+    preserveObjectStacking: true
+  });
+
+
+
+var somefunction = (function () {
+  var someobj = {
+    canvas: this.whiteBoard,
+    _points: [],
+    color: '',
+    width: 1,
+    fill: false,
+    currentLineId: -1,
+
+    _prepareForDrawing: function (pointer) {
+      var p = new fabric.Point(pointer.x, pointer.y);
+      this._reset();
+      this._addPoint(p);
+
+      whiteBoard.contextTop.moveTo(p.x, p.y);
+    },
+
+    /**
+     * @private
+     * @param {fabric.Point} point Point to be added to points array
+     */
+    _addPoint: function (point) {
+      this._points.push(point);
+    },
+
+    /**
+     * Clear points array and set contextTop canvas style.
+     * @private
+     */
+    _reset: function () {
+      this._points.length = 0;
+
+      this._setBrushStyles();
+      this._setShadow();
+    },
+
+    /**
+     * @private
+     * @param {Object} pointer Actual mouse position related to the canvas.
+     */
+    _captureDrawingPath: function (pointer) {
+      var pointerPoint = new fabric.Point(pointer.x, pointer.y);
+      this._addPoint(pointerPoint);
+    },
+
+    /**
+     * Draw a smooth path on the topCanvas using quadraticCurveTo
+     * @private
+     */
+    _render: function () {
+
+      var ctx = whiteBoard.contextTop,
+        v = whiteBoard.viewportTransform,
+        p1 = this._points[0],
+        p2 = this._points[1];
+
+
+      ctx.save();
+      ctx.transform(v[0], v[1], v[2], v[3], v[4], v[5]);
+      ctx.beginPath();
+
+      //if we only have 2 points in the path and they are the same
+      //it means that the user only clicked the canvas without moving the mouse
+      //then we should be drawing a dot. A path isn't drawn between two identical dots
+      //that's why we set them apart a bit
+      if (this._points.length === 2 && p1.x === p2.x && p1.y === p2.y) {
+        p1.x -= 0.5;
+        p2.x += 0.5;
+      }
+      ctx.moveTo(p1.x, p1.y);
+
+      for (var i = 1, len = this._points.length; i < len; i++) {
+        // we pick the point between pi + 1 & pi + 2 as the
+        // end point and p1 as our control point.
+        var midPoint = p1.midPointFrom(p2);
+        ctx.quadraticCurveTo(p1.x, p1.y, midPoint.x, midPoint.y);
+
+        p1 = this._points[i];
+        p2 = this._points[i + 1];
+      }
+      // Draw last line as a straight line while
+      // we wait for the next point to be able to calculate
+      // the bezier control point
+      ctx.lineTo(p1.x, p1.y);
+      ctx.stroke();
+      ctx.restore();
+    },
+
+    /**
+     * Converts points to SVG path
+     * @param {Array} points Array of points
+     * @return {String} SVG path
+     */
+    convertPointsToSVGPath: function (points) {
+      var path = [],
+        p1 = new fabric.Point(points[0].x, points[0].y),
+        p2 = new fabric.Point(points[1].x, points[1].y);
+
+      path.push('M ', points[0].x, ' ', points[0].y, ' ');
+      for (var i = 1, len = points.length; i < len; i++) {
+        var midPoint = p1.midPointFrom(p2);
+        // p1 is our bezier control point
+        // midpoint is our endpoint
+        // start point is p(i-1) value.
+        path.push('Q ', p1.x, ' ', p1.y, ' ', midPoint.x, ' ', midPoint.y, ' ');
+        p1 = new fabric.Point(points[i].x, points[i].y);
+        if ((i + 1) < points.length) {
+          p2 = new fabric.Point(points[i + 1].x, points[i + 1].y);
+        }
+      }
+      path.push('L ', p1.x, ' ', p1.y, ' ');
+      return path;
+    },
+
+    /**
+     * Creates fabric.Path object to add on canvas
+     * @param {String} pathData Path data
+     * @return {fabric.Path} Path to add on canvas
+     */
+    createPath: function (pathData) {
+
+      var path = new fabric.Path(pathData, {
+        fill: null,
+        stroke: this.color,
+        strokeWidth: this.width,
+        strokeLineCap: this.strokeLineCap,
+        strokeLineJoin: this.strokeLineJoin,
+        strokeDashArray: this.strokeDashArray,
+        originX: 'center',
+        originY: 'center',
+        id: this.currentLineId
+      });
+
+      if (this.shadow) {
+        this.shadow.affectStroke = true;
+        path.setShadow(this.shadow);
+      }
+
+      return path;
+    },
+
+    _setBrushStyles: function() {
+    var ctx = whiteBoard.contextTop;
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = this.width;
+    ctx.lineCap = this.strokeLineCap;
+    ctx.lineJoin = this.strokeLineJoin;
+    if (this.strokeDashArray && fabric.StaticCanvas.supports('setLineDash')) {
+      ctx.setLineDash(this.strokeDashArray);
+    }
+  },
+
+    _resetShadow: function() {
+    var ctx = whiteBoard.contextTop;
+
+        ctx.shadowColor = '';
+
+    ctx.shadowBlur = ctx.shadowOffsetX = ctx.shadowOffsetY = 0;
+  },
+
+  /**
+   * Sets brush shadow styles
+   * @private
+   */
+  _setShadow: function() {
+    if (!this.shadow) {
+      return;
+    }
+
+    var ctx = whiteBoard.contextTop,
+        zoom = whiteBoard.getZoom();
+
+    ctx.shadowColor = this.shadow.color;
+    ctx.shadowBlur = this.shadow.blur * zoom;
+    ctx.shadowOffsetX = this.shadow.offsetX * zoom;
+    ctx.shadowOffsetY = this.shadow.offsetY * zoom;
+  },
+
+    /**
+     * On mouseup after drawing the path on contextTop canvas
+     * we use the points captured to create an new fabric path object
+     * and add it to the fabric canvas.
+     */
+    _finalizeAndAddPath: function () {
+      var ctx = whiteBoard.contextTop;
+      ctx.closePath();
+
+      var pathData = this.convertPointsToSVGPath(this._points).join('');
+      if (pathData === 'M 0 0 Q 0 0 0 0 L 0 0') {
+        // do not create 0 width/height paths, as they are
+        // rendered inconsistently across browsers
+        // Firefox 4, for example, renders a dot,
+        // whereas Chrome 10 renders nothing
+        whiteBoard.renderAll();
+        return;
+      }
+
+      var path = this.createPath(pathData);
+
+      whiteBoard.add(path);
+      path.setCoords();
+
+      whiteBoard.clearContext(whiteBoard.contextTop);
+      this._resetShadow();
+      whiteBoard.renderAll();
+
+      // fire event 'path' created
+      whiteBoard.fire('path:created', {
+        path: path
+      });
+
+      return path;
+    }
+  };
+
+  return someobj;
+}());
+
 
 (function () {
   'use strict';
 
+  var socket = io.connect("http://localhost:3000");
+
+
+  var objArray = [];
+
   /* Creating Instance of Fabric */
+  /*
   var whiteBoard = new fabric.Canvas('whiteboard', {
     backgroundColor: 'rgba(191, 34, 151, 0.31)',
     selection: false,
@@ -16,6 +250,7 @@
     height: window.innerHeight - 135,
     preserveObjectStacking: true
   });
+*/
 
   /* Settings Background image of the canvas*/
   //  whiteBoard.setBackgroundColor({
@@ -53,7 +288,6 @@
     var objBottom = obj.height + obj.top;
 
     var obj = e.target;
-    console.info(obj);
 
     objInView(objBottom, objRight, obj);
 
@@ -61,7 +295,6 @@
 
   whiteBoard.on('mouse:up', function (e) {
     panning = false;
-    console.info('mouse up');
   });
   whiteBoard.on('mouse:out', function (e) {
     panning = false;
@@ -200,7 +433,7 @@
     $('canvas').unbind('click');
     $('body').unbind('click');
     $('label[for="uploader"]').removeClass('active');
-//     textObject.exitEditing();
+    //     textObject.exitEditing();
 
     /* ERASER */
     if ($('#eraser').is(':checked')) {
@@ -282,20 +515,19 @@
       if (textObject) {
         textObject.exitEditing();
       }
-
       $('.upper-canvas').removeClass('text');
     }
 
-     /* Send To Back Object */
+    /* Send To Back Object */
     if ($('#sendBack').is(':checked')) {
-        sendSelectedObjectBack();
-       $(this).removeAttr('checked');
+      sendSelectedObjectBack();
+      $(this).removeAttr('checked');
     }
 
     /* Bring To Front Object */
     if ($('#bringFront').is(':checked')) {
-        sendSelectObjectToFront();
-       $(this).removeAttr('checked');
+      sendSelectObjectToFront();
+      $(this).removeAttr('checked');
     }
   });
 
@@ -345,6 +577,7 @@
   }
 
   var handleDrop = function (event) {
+
     var droppedGround = event.target;
     event.stopPropagation();
     event.preventDefault();
@@ -354,15 +587,30 @@
     droppedGround.style.backgroundColor = '';
 
     if (img) {
+      var guidId = guid();
       var newImage = new fabric.Image(img, {
         width: img.width,
         height: img.height,
-        left: event.layerX,
-        top: event.layerY,
-        originX: 'center'
+        left: event.offsetX,
+        top: event.offsetY,
+        originX: 'center',
+        id: guidId
+      });
+
+      /* Pushing new object into the array of objArray */
+
+      objArray.push({
+        id: guidId,
+        value: newImage,
+        type: "image"
       });
 
       whiteBoard.add(newImage);
+
+      socket.emit('added shape', newImage, {
+        id: guidId
+      });
+
       return false;
     } // End of dragging the image from the page
 
@@ -409,7 +657,7 @@
   // File Uploader
   document.getElementById('uploader').onchange = function handleImage(e) {
     var reader = new FileReader();
-    console.info(e);
+
     reader.onload = function (event) {
       var imgObj = new Image();
       imgObj.src = event.target.result;
@@ -428,11 +676,13 @@
 
     }
     reader.readAsDataURL(e.target.files[0]);
-  }
+  };
 
   /* Stacking the objects */
   var selectedObject;
   whiteBoard.on('object:selected', function (event) {
+
+    console.info('object Selected ', event);
     selectedObject = event.target;
   });
   var sendSelectedObjectBack = function () {
@@ -440,39 +690,189 @@
   };
   var sendSelectObjectToFront = function () {
     whiteBoard.bringToFront(selectedObject);
-  }
-
+  };
 
   /* Realtime Collaboration */
-// Listens for draw messages, sends info about the drawn lines:
-TogetherJS.hub.on('draw', function (msg) {
-  if (!msg.sameUrl) {
-      return;
-  }
-  draw(msg.start, msg.end, msg.color, msg.size, msg.compositeOperation, true);
-});
 
+  whiteBoard.on('mouse:down', function (e) {
+    var mouseBtnClicked = e.button;
+    if (whiteBoard.isDrawingMode == true && mouseBtnClicked === 1) {
 
-// Clears the canvas whenever someone presses the clear-button
-TogetherJS.hub.on('clear', function (msg) {
-  if (!msg.sameUrl) {
-    return;
-  }
-  clear(false);
-});
+      var pathDrawn = e;
+      console.info('PathDrawn ', pathDrawn);
+      var guidId = guid();
+      lineId = guidId;
+      somefunction.currentLineId = guidId;
+      socket.emit('draw started', {x: pathDrawn.e.layerX,y: pathDrawn.e.layerY}, {id: guidId});
 
-// Hello is sent from every newly connected user, this way they will receive what has already been drawn:
-TogetherJS.hub.on('togetherjs.hello', function () {
-  TogetherJS.send({
-    type: 'init',
-    lines: lines
+    }
   });
+
+  var mouseDown = false;
+  whiteBoard.on('mouse:up', function (e) {
+    mouseDown = false;
+    if (whiteBoard.isDrawingMode == true) {
+      var pathDrawn = e;
+      var currentLine = lineId;
+      lineId = {};
+
+      socket.emit("draw finished", {x: e.e.clientX, y: e.e.clientY}, {
+        id: currentLine
+      });
+
+    }
+  });
+
+  whiteBoard.on('mouse:down', function (e) {
+    mouseDown = true;
+
+  });
+
+  whiteBoard.on('mouse:move', function (ev) {
+    var mouseBtnClicked = ev.button;
+    if (whiteBoard.isDrawingMode == true && mouseDown) {
+      var pathDrawn = ev;
+      socket.emit('draw move', {
+        x: ev.e.offsetX,
+        y: ev.e.offsetY
+      }, {
+        id: lineId
+      });
+    }
+  });
+
+  whiteBoard.on("path:created", function(opt){
+    opt.path.id = lineId;
+    objArray.push({
+      id: lineId,
+      value: opt.path,
+      type: "line"
+    })
 });
 
-// Draw initially received drawings:
-TogetherJS.hub.on('init', function (msg) {
-  reDraw(msg.lines);
-  lines = msg.lines;
-});
+
+  var ctx = whiteBoard.getContext('2d');
+  var lineId = {};
+
+  socket.on('draw started', function (data) {
+    somefunction.currentLineId = data.id;
+
+    var point = {
+        x: data.coords.x,
+        y: data.coords.y
+      }
+      somefunction._prepareForDrawing(point);
+
+      whiteBoard.isDrawingMode = true;
+      whiteBoard.freeDrawingBrush.color = '#ff0000';
+      whiteBoard.freeDrawingBrush.width = 5;
+
+      somefunction.color = '#ff0000';
+      somefunction.width = 5;
+      // somefunction.fill = true;
+
+      whiteBoard.freeDrawingCursor = 'url(images/icons/pencil.png) 0 16, auto';
+
+      somefunction._captureDrawingPath(point);
+      somefunction._render();
+  });
+
+  socket.on('draw move', function (data) {
+      somefunction._captureDrawingPath(data.coords);
+      //somefunction.canvas.clearContext(somefunction.canvas.contextTop);
+      somefunction._render();
+  });
+
+  socket.on('draw finished', function (data) {
+
+    var pathObj = somefunction._finalizeAndAddPath();
+
+    objArray.push({
+      id: data.id,
+      value: pathObj,
+      type: "line"});
+
+    console.info("line finished array", objArray);
+    whiteBoard.isDrawingMode = false;
+  });
+
+  whiteBoard.on('object:modified', function (event) {
+    console.info("event type", event)
+
+    var originalArrayObjectModified = objArray.find(x => x.id === event.target.id);
+    console.info("get object ", event.target.id, originalArrayObjectModified);
+    if (originalArrayObjectModified !== undefined) {
+      var objModified = event.target;
+      var objId = objModified.id;
+
+      console.info("modified ", objModified)
+      socket.emit('shape modified', objModified, {
+        id: objId
+      });
+      }
+  });
+
+  socket.on('shape modified', function (data) {
+    var originalArrayObjectModified = objArray.find(x => x.id === data.id);
+    console.info("originalArrayObjectModified", originalArrayObjectModified);
+    if (originalArrayObjectModified !== undefined) {
+      var originalObjectModified = originalArrayObjectModified.value;
+
+      // Position
+      originalObjectModified.setTop(data.shape.top);
+      originalObjectModified.setLeft(data.shape.left);
+
+      // Scaling
+      originalObjectModified.setScaleX(data.shape.scaleX);
+      originalObjectModified.setScaleY(data.shape.scaleY);
+
+      // Rotation
+      // NB!!!! do not use SetAngle Method as is has some weird output
+      originalObjectModified.set('angle', data.shape.angle);
+      originalObjectModified.setOriginX(data.shape.originX);
+      originalObjectModified.setOriginY(data.shape.originY);
+
+      originalObjectModified.setCoords();
+      whiteBoard.renderAll();
+
+    } else {
+      console.info("cannot find element in obj array: ", objArray, data)
+    }
+
+  });
+
+  socket.on('added shape', function (data) {
+    var newImageObject = data.shape;
+    var imageDom = document.createElement("img");
+    imageDom.setAttribute("width", newImageObject.width);
+    imageDom.setAttribute("height", newImageObject.height);
+    imageDom.setAttribute("src", newImageObject.src);
+
+    var newImage = new fabric.Image(imageDom, {
+      width: newImageObject.width,
+      height: newImageObject.height,
+      left: newImageObject.left,
+      top: newImageObject.top,
+      id: data.id
+    });
+
+    objArray.push({
+      id: data.id,
+      value: newImage,
+      type: "image"
+    });
+
+    whiteBoard.add(newImage);
+  });
+
+  function guid() {
+    function s4() {
+      return Math.floor((1 + Math.random()) * 0x10000)
+        .toString(16)
+        .substring(1);
+    }
+    return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+      s4() + '-' + s4() + s4() + s4();
+  };
 
 }());
