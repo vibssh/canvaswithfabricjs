@@ -196,6 +196,20 @@
 
   };
 
+  //Delete Obj
+  $(document).on('keyup', function (e) {
+
+    if ((e.keyCode === 46) || (e.keyCode === 8)) {
+      var activeObject = whiteBoard.getActiveObject();
+      if (activeObject !== 'undefined') {
+        deleteSelectedObj(activeObject);
+      }
+    }
+
+  });
+
+
+
   /* getObjects method to see what is rendered */
   $('input[type="radio"]').on('change', function (event) {
     /* TO DO MAKE IT CONFIGURABLE WHICH ITEM IS CLICKED IN TOOLBAR */
@@ -258,9 +272,7 @@
 
     if ($('#select').is(':checked')) {
       $(document).on('keyup', function (e) {
-        if ((e.keyCode === 46) || (e.keyCode === 8)) {
-          deleteSelectedObj();
-        }
+
       });
     }
 
@@ -302,8 +314,17 @@
   });
 
   //Delete Selected Object by pressing delete key
-  var deleteSelectedObj = function () {
-    whiteBoard.remove(whiteBoard.getActiveObject());
+  var deleteSelectedObj = function (activeObject) {
+    console.info(activeObject);
+    var deleteObj = activeObject;
+    if (deleteObj !== 'undefined') {
+      var deleteObjId = deleteObj.id;
+      objArray.splice(1, deleteObj);
+      whiteBoard.remove(deleteObj);
+      socket.emit('delete object', {
+        id: deleteObjId
+      });
+    }
   };
 
   //Drag Drop Events
@@ -368,7 +389,6 @@
       });
 
       /* Pushing new object into the array of objArray */
-
       objArray.push({
         id: guidId,
         value: newImage,
@@ -479,18 +499,20 @@
     }
   });
 
-  whiteBoard.on('object:added', function(e){
-      if(pathInProgress == true){
-        e.target.id = lineId;
-        objArray.push({
-          id: lineId,
-          value: e.target,
-          type: "line"
-        });
+  whiteBoard.on('object:added', function (e) {
+    if (pathInProgress == true) {
+      e.target.id = lineId;
+      objArray.push({
+        id: lineId,
+        value: e.target,
+        type: "line"
+      });
 
-        pathInProgress = false;
-        socket.emit("draw finished", e.target, {id: lineId});
-      }
+      pathInProgress = false;
+      socket.emit("draw finished", e.target, {
+        id: lineId
+      });
+    }
 
   });
 
@@ -499,21 +521,22 @@
     var pathShape = data.shape;
 
     var path = new fabric.Path(pathShape.path, {
-        fill: pathShape.fill,
-        stroke: pathShape.stroke,
-        strokeWidth: pathShape.strokeWidth,
-        strokeLineCap: pathShape.strokeLineCap,
-        strokeLineJoin: pathShape.strokeLineJoin,
-        strokeDashArray: pathShape.strokeDashArray,
-        originX: 'center',
-        originY: 'center',
-        id: data.id
-      });
+      fill: pathShape.fill,
+      stroke: pathShape.stroke,
+      strokeWidth: pathShape.strokeWidth,
+      strokeLineCap: pathShape.strokeLineCap,
+      strokeLineJoin: pathShape.strokeLineJoin,
+      strokeDashArray: pathShape.strokeDashArray,
+      originX: 'center',
+      originY: 'center',
+      id: data.id
+    });
 
     objArray.push({
       id: data.id,
       value: path,
-      type: "line"});
+      type: "line"
+    });
 
     whiteBoard.add(path);
     path.setCoords();
@@ -526,7 +549,9 @@
     if (originalArrayObjectModified !== undefined) {
       var objModified = event.target;
       var objId = objModified.id;
-      socket.emit('shape modified', objModified, {id: objId});
+      socket.emit('shape modified', objModified, {
+        id: objId
+      });
     }
   });
 
@@ -561,6 +586,7 @@
   });
 
   socket.on('added shape', function (data) {
+    console.info('shape added ', data);
     var newImageObject = data.shape;
     var imageDom = document.createElement("img");
     imageDom.setAttribute("width", newImageObject.width);
@@ -582,6 +608,13 @@
     });
 
     whiteBoard.add(newImage);
+  });
+
+  socket.on('delete object', function (data) {
+    var deletedId = data.id;
+    var objToDelete = objArray.find(x => x.id === data.id);
+    whiteBoard.remove(objToDelete.value);
+    objArray.splice(1, objToDelete);
   });
 
   function guid() {
