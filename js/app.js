@@ -13,6 +13,7 @@
   var lineId = {};
   var roomIdentifier;
   var roomNameIdentifier;
+  var selectedObject;
   /* Creating Instance of Fabric */
 
   var whiteBoard = new fabric.Canvas('whiteboard', {
@@ -20,8 +21,8 @@
     selection: false,
     //width: 1920,
     //height: 1000,
-     width: window.innerWidth - 110,
-     height: window.innerHeight - 135,
+    width: window.innerWidth - 110,
+    height: window.innerHeight - 135,
     preserveObjectStacking: true
   });
 
@@ -176,49 +177,59 @@
   whiteBoard.add(rect, circle);
 
   /* Adding Text Area and Text Box */
-  var textOption = {
-    fontFamily: 'Helvetica',
-    fontSize: 20,
-    fill: '#ff00ff',
-    hasBorder: false,
-    editable: true
 
-  };
   var textObject = '';
+
+var mousePosition ={
+  left:0,
+    top:0
+};
+
+  var startedCreatingTextObj = false;
 
   //TEXT Tool
   var createTextBox = function () {
+    var textId = guid();
+    var textOption = {
+      fontFamily: 'Helvetica',
+      fontSize: 20,
+      fill: '#ff00ff',
+      hasBorder: false,
+      editable: true,
+      id: textId,
+      top: mousePosition.top,
+      left: mousePosition.left
+    };
+
     textObject = new fabric.IText('', textOption);
+    console.info("created but not added to board", textObject);
     whiteBoard.add(textObject);
+
+    console.info("added to board", textObject);
     //whiteBoard.centerObject(textObject);
+    objArray.push({
+      id: textId,
+      value: textObject,
+      type: "i-text"
+    });
+
+    console.info("added to array", textObject, objArray);
+
     whiteBoard.setActiveObject(textObject);
     textObject.selectAll();
     textObject.enterEditing();
+    startedCreatingTextObj = true;
     textObject.hiddenTextarea.focus();
-
 
   };
 
-  //Delete Obj
-  $(document).on('keyup', function (e) {
-
-    if ((e.keyCode === 46) || (e.keyCode === 8)) {
-      var activeObject = whiteBoard.getActiveObject();
-      if (activeObject !== 'undefined') {
-        deleteSelectedObj(activeObject);
-      }
-    }
-
-  });
-
-
-  $("#CreateRoom").on("click", function(e){
+  $("#CreateRoom").on("click", function (e) {
     var roomName = $('#roomName').val();
     roomNameIdentifier = roomName;
     socket.emit("create room", roomName);
   });
 
-  $("#JoinRoom").on("click", function(e){
+  $("#JoinRoom").on("click", function (e) {
     var roomName = $('#roomName').val();
     roomNameIdentifier = roomName;
     socket.emit("join room", roomName);
@@ -296,20 +307,23 @@
 
       $(document).on('mousemove', function (e) {
         ///console.info('CreateTextBox', e);
-        textOption.left = e.pageX - 70;
-        textOption.top = e.pageY;
+        mousePosition.left = e.pageX - 70;
+        mousePosition.top = e.pageY;
       });
 
       $('.canvas-container').on('click', function (e) {
         e.preventDefault();
-        createTextBox();
-        textObject.hiddenTextarea.focus();
+
+        if (startedCreatingTextObj == false) {
+          createTextBox();
+        }
       });
 
     } else {
       $('.canvas-container').unbind('click');
-      if (textObject) {
+      if (textObject !== undefined) {
         textObject.exitEditing();
+        textObject = undefined;
       }
       $('.upper-canvas').removeClass('text');
     }
@@ -330,7 +344,7 @@
   //Delete Selected Object by pressing delete key
   var deleteSelectedObj = function (activeObject) {
     var deleteObj = activeObject;
-    if (deleteObj !== 'undefined') {
+    if (deleteObj !== undefined) {
       var deleteObjId = deleteObj.id;
       objArray.splice(1, deleteObj);
       whiteBoard.remove(deleteObj);
@@ -486,7 +500,11 @@
   };
 
   /* Stacking the objects */
-  var selectedObject;
+  whiteBoard.on('selection:cleared', function (event) {
+    selectedObject = undefined;
+    console.info("selection cleared", selectedObject);
+  });
+
   whiteBoard.on('object:selected', function (event) {
 
     console.info('object Selected ', event);
@@ -495,13 +513,13 @@
     //Delete Obj
     $(document).on('keyup', function (e) {
 
-      if ((e.keyCode === 46) || (e.keyCode === 8)) {
-        if (selectedObject !== 'undefined') {
+      if (e.keyCode === 46) {
+        if (selectedObject !== undefined) {
           deleteSelectedObj(selectedObject);
         }
       }
 
-  });
+    });
 
   });
   var sendSelectedObjectBack = function () {
@@ -512,8 +530,8 @@
   };
 
   /* Realtime Collaboration */
-
   var pathInProgress = false;
+
   whiteBoard.on('mouse:down', function (e) {
     var mouseBtnClicked = e.button;
     if (whiteBoard.isDrawingMode == true && mouseBtnClicked === 1) {
@@ -523,7 +541,6 @@
   });
 
   whiteBoard.on('mouse:up', function (e) {
-    console.info("room ", roomIdentifier, roomNameIdentifier);
 
     if (whiteBoard.isDrawingMode == true) {
       lineId = {};
@@ -542,7 +559,7 @@
       pathInProgress = false;
       socket.emit("draw finished", e.target, {
         id: lineId,
-        roomId:roomIdentifier,
+        roomId: roomIdentifier,
         roomName: roomNameIdentifier
       });
     }
@@ -577,24 +594,54 @@
   });
 
   whiteBoard.on('object:modified', function (event) {
+    console.info("modified ", event.target);
 
-    var originalArrayObjectModified = objArray.find(x => x.id === event.target.id);
-    if (originalArrayObjectModified !== undefined) {
-      var objModified = event.target;
-      console.log("objModified", objModified);
-      var objId = objModified.id;
-      socket.emit('shape modified', objModified, {
-        id: objId,
-        roomId: roomIdentifier,
-        roomName: roomNameIdentifier
-      });
+    console.info("modifying text ", startedCreatingTextObj, selectedObject, textObject);
+
+    if (startedCreatingTextObj == true && ((selectedObject == undefined) || (selectedObject == textObject)) && (textObject !== undefined && textObject.text !== '')) {
+      var textObjectToBeEmitted = objArray.find(x => x.id === event.target.id);
+      console.info("we should emit updated text on creation textObjectToBeEmitted ", textObjectToBeEmitted);
+
+      if (textObjectToBeEmitted !== undefined){
+        startedCreatingTextObj = false;
+        textObject.exitEditing();
+
+        socket.emit('text add', textObject, {
+          id: textObject.id,
+          roomId: roomIdentifier,
+          roomName: roomNameIdentifier
+        });
+        }
     }
+    else if(textObject !== undefined && textObject.text === ''){
+      whiteBoard.remove(textObject);
+      objArray.splice(1, textObject);
+    }
+    else{
+      var originalArrayObjectModified = objArray.find(x => x.id === event.target.id);
+
+      if (originalArrayObjectModified !== undefined) {
+        var objModified = event.target;
+        console.info("objModified", objModified);
+        var objId = objModified.id;
+        socket.emit('shape modified', objModified, {
+          id: objId,
+          roomId: roomIdentifier,
+          roomName: roomNameIdentifier
+        });
+      } else {
+        console.info("objModified not found in array", objModified, objArray);
+      }
+    }
+
   });
 
   socket.on('shape modified', function (data) {
+
     var originalArrayObjectModified = objArray.find(x => x.id === data.id);
 
     if (originalArrayObjectModified !== undefined) {
+
       var originalObjectModified = originalArrayObjectModified.value;
 
       // Position
@@ -651,25 +698,50 @@
     objArray.splice(1, objToDelete);
   });
 
+  socket.on('text add', function (data) {
+    var newTextObj = data.shape;
+    var newITextOption = {
+      fontFamily: newTextObj.fontFamily,
+      fontSize: newTextObj.fontSize,
+      fill: newTextObj.fill,
+      hasBorder: newTextObj.hasBorder,
+      editable: newTextObj.editable,
+      id: data.id
+    }
+    var newIText = new fabric.IText(newTextObj.text, newITextOption);
+    newIText.top = newTextObj.top;
+    newIText.left = newTextObj.left;
+    whiteBoard.add(newIText);
+    newIText.setCoords();
 
-  socket.on("room created", function(recordset){
+    objArray.push({
+      id: data.id,
+      value: newIText,
+      type: 'i-text'
+    });
+  });
+
+
+
+  socket.on("room created", function (recordset) {
     roomIdentifier = recordset.recordset[0].roomId;
     roomNameIdentifier = recordset.recordset[0].roomName;
   });
 
-  socket.on("room joined", function(recordset){
+  socket.on("room joined", function (recordset) {
     roomIdentifier = recordset.recordset[0].roomId;
     roomNameIdentifier = recordset.recordset[0].roomName;
+    var firstObject = recordset.recordset[0].Object;
 
-    for(var i = 0; i < recordset.recordset.length; i++){
-      var record = recordset.recordset[i];
-      var objId = record.objectId;
-      var obj = JSON.parse(record.Object);
+    if (firstObject !== undefined) {
+      for (var i = 0; i < recordset.recordset.length; i++) {
 
-      var objType = obj.type;
-      var objectToAdd;
-      if(objType == "image")
-        {
+        var record = recordset.recordset[i];
+        var objId = record.objectId;
+        var obj = JSON.parse(record.Object);
+        var objType = obj.type;
+        var objectToAdd;
+        if (objType == "image") {
           var imageDom = document.createElement("img");
           imageDom.setAttribute("width", obj.width);
           imageDom.setAttribute("height", obj.height);
@@ -682,9 +754,7 @@
             top: obj.top,
             id: record.objectId
           });
-        }
-      else if(objType == "path")
-        {
+        } else if (objType == "path") {
           objectToAdd = new fabric.Path(obj.path, {
             fill: obj.fill,
             stroke: obj.stroke,
@@ -699,18 +769,46 @@
             top: obj.top
           });
 
+        } else if (objType === 'i-text') {
+          var newITextOption = {
+            fontFamily: obj.fontFamily,
+            fontSize: obj.fontSize,
+            fill: obj.fill,
+            hasBorder: obj.hasBorder,
+            editable: obj.editable,
+            id: record.objectId
+          }
+          objectToAdd = new fabric.IText(obj.text, newITextOption);
+          objectToAdd.top = obj.top;
+          objectToAdd.left = obj.left;
         }
 
-      if(objectToAdd !== undefined){
+        if (objectToAdd !== undefined) {
+
+          // Position
+          objectToAdd.setTop(obj.top);
+          objectToAdd.setLeft(obj.left);
+
+          // Scaling
+          objectToAdd.setScaleX(obj.scaleX);
+          objectToAdd.setScaleY(obj.scaleY);
+
+          // Rotation
+          // NB!!!! do not use SetAngle Method as is has some weird output
+          objectToAdd.set('angle', obj.angle);
+          objectToAdd.setOriginX(obj.originX);
+          objectToAdd.setOriginY(obj.originY);
+
           objArray.push({
             id: record.objectId,
             value: objectToAdd,
             type: objType
           });
-        whiteBoard.add(objectToAdd);
-        objectToAdd.setCoords();
+          whiteBoard.add(objectToAdd);
+          objectToAdd.setCoords();
         }
       }
+    }
   });
 
   function guid() {
